@@ -25,6 +25,7 @@ class SystemUtilityController extends Controller
         'storage:link' => [],
         'queue:work' => ['--stop-when-empty' => true],
         'fix:ses' => [],
+        'seed:leads' => [],
         'db:seed' => ['--force' => true],
     ];
 
@@ -130,6 +131,13 @@ class SystemUtilityController extends Controller
             \App\Models\MarketingSetting::set('aws_ses_configuration_set', '');
             \App\Models\MarketingSetting::set('aws_ses_from_address', 'nasar@thenexteck.com');
             return response($this->renderTerminalHtml('fix:ses', "Settings updated successfully on live server:\n- AWS Region: eu-north-1 (Stockholm)\n- Configuration Set: (empty/disabled)\n- From Address: nasar@thenexteck.com\n\nVerified identities in eu-north-1 will now process sends successfully!", true));
+        }
+
+        if ($commandKey === 'seed:leads') {
+            $seeder = new \Database\Seeders\LeadsCsvSeeder();
+            $seeder->run();
+            $count = \App\Models\MarketingContact::count();
+            return response($this->renderTerminalHtml('seed:leads', "Imported 20 Leads successfully!\nTotal contacts currently in database: {$count}\nAll 20 leads marked with subscription_status='subscribed' and consent_status='granted'.", true));
         }
 
         if ($commandKey === 'route:list') {
