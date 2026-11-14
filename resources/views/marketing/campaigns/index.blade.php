@@ -117,11 +117,12 @@
                             Report
                         </a>
 
-                        @if($camp->status === 'draft' || $camp->status === 'paused')
-                        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $camp) }}" class="d-inline">
+                        @if($camp->status === 'draft' || $camp->status === 'paused' || ($camp->status === 'running' && $camp->sent_count < $camp->total_recipients))
+                        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $camp) }}" class="d-inline" title="Send Instantly">
                             @csrf
-                            <button type="submit" class="btn btn-sm" style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; padding: 3px 8px;" title="Start Dispatch">
-                                <i class="fa-solid fa-play" style="font-size: 0.7rem;"></i>
+                            <input type="hidden" name="mode" value="instant">
+                            <button type="submit" class="btn btn-sm" style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; padding: 3px 8px;" title="Send Instantly via Live SES">
+                                <i class="fa-solid fa-bolt" style="font-size: 0.7rem;"></i>
                             </button>
                         </form>
                         @endif

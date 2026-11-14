@@ -20,12 +20,14 @@ class ProcessCampaignEmailsJob implements ShouldQueue
 
     public int $tries = 3;
     public int $timeout = 600;
+    public bool $syncMode = false;
 
     protected MarketingCampaign $campaign;
 
-    public function __construct(MarketingCampaign $campaign)
+    public function __construct(MarketingCampaign $campaign, bool $syncMode = false)
     {
         $this->campaign = $campaign;
+        $this->syncMode = $syncMode;
     }
 
     public function handle(OpenAIService $aiService): void
@@ -121,16 +123,28 @@ class ProcessCampaignEmailsJob implements ShouldQueue
                 }
             }
 
-            // Queue for delivery via SendMarketingEmailJob
+            // Deliver via SendMarketingEmailJob (sync or queued)
             $emailRecord->update([
                 'status' => 'queued',
                 'queued_at' => now(),
             ]);
 
-            SendMarketingEmailJob::dispatch($emailRecord)->onQueue('marketing');
+            if ($this->syncMode || config('queue.default') === 'sync') {
+                SendMarketingEmailJob::dispatchSync($emailRecord);
+            } else {
+                SendMarketingEmailJob::dispatch($emailRecord);
+            }
         }
 
         $fresh->recalculateStats();
+
+        $remaining = $fresh->emails()->whereIn('status', ['pending', 'queued'])->count();
+        if ($remaining === 0 && $fresh->emails()->count() > 0) {
+            $fresh->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+            ]);
+        }
     }
 
     protected function renderTemplate(string $content, ?string $subject, MarketingContact $contact): array

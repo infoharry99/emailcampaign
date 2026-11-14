@@ -23,6 +23,7 @@ class SystemUtilityController extends Controller
         'view:clear' => [],
         'optimize:clear' => [],
         'storage:link' => [],
+        'queue:work' => ['--stop-when-empty' => true],
         'db:seed' => ['--force' => true],
     ];
 

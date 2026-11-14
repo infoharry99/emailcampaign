@@ -97,11 +97,21 @@ class MarketingCampaignController extends Controller
             ->with('success', 'Campaign updated successfully.');
     }
 
-    public function start(MarketingCampaign $campaign)
+    public function start(Request $request, MarketingCampaign $campaign)
     {
-        $campaign->update(['status' => 'running']);
-        ProcessCampaignEmailsJob::dispatch($campaign);
+        $campaign->update([
+            'status' => 'running',
+            'started_at' => $campaign->started_at ?? now(),
+        ]);
 
+        $instant = $request->has('instant') || $request->input('mode') === 'instant' || config('queue.default') === 'sync';
+
+        if ($instant) {
+            ProcessCampaignEmailsJob::dispatchSync($campaign, true);
+            return back()->with('success', 'Campaign started! All emails processed and dispatched immediately.');
+        }
+
+        ProcessCampaignEmailsJob::dispatch($campaign);
         return back()->with('success', 'Campaign dispatched to queue workers successfully.');
     }
 
@@ -111,9 +121,17 @@ class MarketingCampaignController extends Controller
         return back()->with('success', 'Campaign has been paused. Any running jobs will halt.');
     }
 
-    public function resume(MarketingCampaign $campaign)
+    public function resume(Request $request, MarketingCampaign $campaign)
     {
         $campaign->update(['status' => 'running']);
+
+        $instant = $request->has('instant') || $request->input('mode') === 'instant' || config('queue.default') === 'sync';
+
+        if ($instant) {
+            ProcessCampaignEmailsJob::dispatchSync($campaign, true);
+            return back()->with('success', 'Campaign resumed and emails dispatched immediately.');
+        }
+
         ProcessCampaignEmailsJob::dispatch($campaign);
         return back()->with('success', 'Campaign resumed successfully.');
     }

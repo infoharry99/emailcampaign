@@ -27,13 +27,27 @@
         @if($campaign->status === 'draft' || $campaign->status === 'paused')
         <form method="POST" action="{{ route('admin.marketing.campaigns.start', $campaign) }}">
             @csrf
+            <input type="hidden" name="mode" value="instant">
             <button type="submit" class="btn btn-success">
-                <i class="fa-solid fa-play me-1"></i> {{ $campaign->status === 'paused' ? 'Resume Dispatch' : 'Start Sending' }}
+                <i class="fa-solid fa-bolt me-1"></i> Send Instantly (Live SES)
+            </button>
+        </form>
+        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $campaign) }}">
+            @csrf
+            <button type="submit" class="btn btn-outline-success">
+                <i class="fa-solid fa-clock me-1"></i> Queue Background
             </button>
         </form>
         @endif
 
         @if($campaign->status === 'running')
+        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $campaign) }}">
+            @csrf
+            <input type="hidden" name="mode" value="instant">
+            <button type="submit" class="btn btn-success" title="Force immediate dispatch without waiting for queue worker">
+                <i class="fa-solid fa-bolt me-1"></i> Dispatch Instantly Now
+            </button>
+        </form>
         <form method="POST" action="{{ route('admin.marketing.campaigns.pause', $campaign) }}">
             @csrf
             <button type="submit" class="btn btn-warning">
