@@ -29,7 +29,7 @@ return [
         'configuration_set' => env('AWS_SES_CONFIGURATION_SET', ''),
         'from_address' => env('MAIL_FROM_ADDRESS', 'noreply@marketing.thenexteck.com'),
         'from_name' => env('MAIL_FROM_NAME', 'TheNexteck Marketing'),
-        'sending_rate' => env('AWS_SES_SENDING_RATE', 14), // per second
+        'sending_rate' => env('AWS_SES_SENDING_RATE', 60), // emails per minute
         'daily_quota' => env('AWS_SES_DAILY_QUOTA', 50000),
     ],
 

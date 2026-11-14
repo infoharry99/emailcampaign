@@ -62,6 +62,14 @@ class ProcessCampaignEmailsJob implements ShouldQueue
 
         $contacts = $contactsQuery->get();
 
+        // Calculate rate throttling per minute
+        $ratePerMinute = (float) MarketingSetting::get('aws_ses_sending_rate', 60);
+        if ($ratePerMinute <= 0) {
+            $ratePerMinute = 60;
+        }
+        $secondsPerEmail = 60.0 / $ratePerMinute;
+
+        $index = 0;
         foreach ($contacts as $contact) {
             // Check campaign status during batch to support immediate pause
             if ($this->campaign->fresh()->status === 'paused') {
@@ -123,7 +131,7 @@ class ProcessCampaignEmailsJob implements ShouldQueue
                 }
             }
 
-            // Deliver via SendMarketingEmailJob (sync or queued)
+            // Deliver via SendMarketingEmailJob (sync with micro-throttle or queued with staggered delay)
             $emailRecord->update([
                 'status' => 'queued',
                 'queued_at' => now(),
@@ -131,9 +139,17 @@ class ProcessCampaignEmailsJob implements ShouldQueue
 
             if ($this->syncMode || config('queue.default') === 'sync') {
                 SendMarketingEmailJob::dispatchSync($emailRecord);
+
+                if ($secondsPerEmail > 0 && $index < count($contacts) - 1) {
+                    // Micro-throttle in sync mode (capped at 1s to prevent HTTP timeouts)
+                    usleep((int) min(1_000_000, $secondsPerEmail * 1_000_000));
+                }
             } else {
-                SendMarketingEmailJob::dispatch($emailRecord);
+                $delaySeconds = (int) round($index * $secondsPerEmail);
+                SendMarketingEmailJob::dispatch($emailRecord)->delay(now()->addSeconds($delaySeconds));
             }
+
+            $index++;
         }
 
         $fresh->recalculateStats();

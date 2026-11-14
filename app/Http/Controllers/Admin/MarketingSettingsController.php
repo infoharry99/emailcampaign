@@ -18,7 +18,7 @@ class MarketingSettingsController extends Controller
             'aws_ses_configuration_set' => MarketingSetting::get('aws_ses_configuration_set', config('services.ses.configuration_set', '')),
             'aws_ses_from_address' => MarketingSetting::get('aws_ses_from_address', config('services.ses.from_address', 'noreply@marketing.thenexteck.com')),
             'aws_ses_from_name' => MarketingSetting::get('aws_ses_from_name', config('services.ses.from_name', 'TheNexteck Marketing')),
-            'aws_ses_sending_rate' => MarketingSetting::get('aws_ses_sending_rate', config('services.ses.sending_rate', 14)),
+            'aws_ses_sending_rate' => MarketingSetting::get('aws_ses_sending_rate', config('services.ses.sending_rate', 60)),
             'aws_ses_daily_quota' => MarketingSetting::get('aws_ses_daily_quota', config('services.ses.daily_quota', 50000)),
         ];
 
@@ -36,7 +36,7 @@ class MarketingSettingsController extends Controller
             'aws_ses_configuration_set' => 'nullable|string|max:100',
             'aws_ses_from_address' => 'required|email|max:150',
             'aws_ses_from_name' => 'required|string|max:100',
-            'aws_ses_sending_rate' => 'required|numeric|min:1|max:100',
+            'aws_ses_sending_rate' => 'required|numeric|min:1|max:5000',
             'aws_ses_daily_quota' => 'required|numeric|min:1',
         ]);
 
