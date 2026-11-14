@@ -141,6 +141,14 @@
                                 <i class="fa-solid fa-copy" style="font-size: 0.7rem;"></i>
                             </button>
                         </form>
+
+                        <form method="POST" action="{{ route('admin.marketing.campaigns.destroy', $camp) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this campaign?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm" style="background-color: #fef2f2; color: #ef4444; border: 1px solid #fecaca; border-radius: 6px; padding: 3px 8px;" title="Delete Campaign">
+                                <i class="fa-solid fa-trash" style="font-size: 0.7rem;"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 @empty

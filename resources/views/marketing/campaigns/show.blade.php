@@ -46,6 +46,14 @@
         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#testSendModal">
             <i class="fa-solid fa-paper-plane me-1"></i> Send Test Email
         </button>
+
+        <form method="POST" action="{{ route('admin.marketing.campaigns.destroy', $campaign) }}" onsubmit="return confirm('Are you sure you want to delete this campaign?');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="fa-solid fa-trash me-1"></i> Delete
+            </button>
+        </form>
     </div>
 </div>
 

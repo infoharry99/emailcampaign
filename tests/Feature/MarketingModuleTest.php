@@ -139,4 +139,19 @@ class MarketingModuleTest extends TestCase
         $res2->assertSessionHasNoErrors();
         $res2->assertRedirect();
     }
+
+    public function test_campaign_can_be_deleted()
+    {
+        $campaign = MarketingCampaign::create([
+            'name' => 'To Be Deleted',
+            'purpose' => 'Testing deletion',
+            'target_criteria' => 'all',
+            'sending_mode' => 'ai',
+            'status' => 'draft',
+        ]);
+
+        $response = $this->actingAs($this->user)->delete("/admin/marketing/campaigns/{$campaign->id}");
+        $response->assertRedirect('/admin/marketing/campaigns');
+        $this->assertDatabaseMissing('marketing_campaigns', ['id' => $campaign->id]);
+    }
 }

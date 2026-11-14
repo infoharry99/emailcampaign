@@ -16,7 +16,7 @@
         </div>
 
         <div class="card p-4">
-            <form method="POST" action="{{ route('admin.marketing.campaigns.store') }}">
+            <form method="POST" action="{{ route('admin.marketing.campaigns.store') }}" onsubmit="const btn = this.querySelector('button[type=submit]'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class=\'fa-solid fa-spinner fa-spin me-1\'></i> Saving...'; }">
                 @csrf
 
                 <!-- Basic Information -->

@@ -140,6 +140,14 @@ class MarketingCampaignController extends Controller
             ->with('success', 'Campaign duplicated as draft.');
     }
 
+    public function destroy(MarketingCampaign $campaign)
+    {
+        $campaign->delete();
+
+        return redirect()->route('admin.marketing.campaigns.index')
+            ->with('success', 'Campaign deleted successfully.');
+    }
+
     public function testSend(Request $request, MarketingCampaign $campaign, AwsSesService $sesService, OpenAIService $aiService)
     {
         $request->validate([
