@@ -24,6 +24,7 @@ class SystemUtilityController extends Controller
         'optimize:clear' => [],
         'storage:link' => [],
         'queue:work' => ['--stop-when-empty' => true],
+        'fix:ses' => [],
         'db:seed' => ['--force' => true],
     ];
 
@@ -122,6 +123,13 @@ class SystemUtilityController extends Controller
                 'message' => "Command '{$commandKey}' is not permitted via web execution.",
                 'allowed_commands' => array_keys($this->allowedCommands),
             ], 400);
+        }
+
+        if ($commandKey === 'fix:ses') {
+            \App\Models\MarketingSetting::set('aws_region', 'eu-north-1');
+            \App\Models\MarketingSetting::set('aws_ses_configuration_set', '');
+            \App\Models\MarketingSetting::set('aws_ses_from_address', 'nasar@thenexteck.com');
+            return response($this->renderTerminalHtml('fix:ses', "Settings updated successfully on live server:\n- AWS Region: eu-north-1 (Stockholm)\n- Configuration Set: (empty/disabled)\n- From Address: nasar@thenexteck.com\n\nVerified identities in eu-north-1 will now process sends successfully!", true));
         }
 
         if ($commandKey === 'route:list') {

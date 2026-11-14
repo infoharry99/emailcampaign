@@ -26,9 +26,9 @@ class DatabaseSeeder extends Seeder
         );
 
         // 2. Default Configuration Settings
-        MarketingSetting::set('aws_region', 'ap-south-1');
-        MarketingSetting::set('aws_ses_configuration_set', 'marketing-tracking');
-        MarketingSetting::set('aws_ses_from_address', 'noreply@marketing.thenexteck.com');
+        MarketingSetting::set('aws_region', 'eu-north-1');
+        MarketingSetting::set('aws_ses_configuration_set', '');
+        MarketingSetting::set('aws_ses_from_address', 'nasar@thenexteck.com');
         MarketingSetting::set('aws_ses_from_name', 'TheNexteck Marketing');
         MarketingSetting::set('aws_ses_sending_rate', '14');
         MarketingSetting::set('aws_ses_daily_quota', '50000');

@@ -58,8 +58,10 @@
                 @forelse($emails as $email)
                 <tr>
                     <td>
-                        <div class="fw-bold">{{ $email->recipient_email }}</div>
-                        <small class="text-muted">{{ $email->recipient_name }}</small>
+                        <a href="{{ route('admin.marketing.logs.show', $email) }}" class="fw-bold text-decoration-none text-dark">
+                            {{ $email->recipient_email }}
+                        </a>
+                        <div class="text-muted small">{{ $email->recipient_name }}</div>
                     </td>
                     <td>
                         <span class="badge bg-light text-dark border">{{ $email->campaign->name ?? 'Direct' }}</span>
@@ -78,6 +80,11 @@
                             };
                         @endphp
                         <span class="badge {{ $badge }}">{{ ucfirst($email->status) }}</span>
+                        @if($email->status === 'failed' || $email->status === 'bounced')
+                            <div class="text-danger small mt-1" style="font-size: 0.72rem; max-width: 260px;" title="{{ $email->error_message }}">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> {{ Str::limit($email->error_message ?: 'SES Error', 50) }}
+                            </div>
+                        @endif
                     </td>
                     <td><code class="small text-muted">{{ Str::limit($email->ses_message_id, 24) ?: '—' }}</code></td>
                     <td><span class="badge bg-light text-dark border">{{ $email->retry_count }}</span></td>
