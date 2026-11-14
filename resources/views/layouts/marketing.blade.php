@@ -469,6 +469,11 @@
                     <i class="fa-solid fa-brain text-success"></i> OpenAI Settings
                 </a>
             </li>
+            <li class="sidebar-item">
+                <a href="{{ route('artisan.migrate') }}" class="sidebar-link" target="_blank">
+                    <i class="fa-solid fa-terminal text-info"></i> Database & Routes (Artisan)
+                </a>
+            </li>
         </ul>
 
         <!-- Bottom User Info -->

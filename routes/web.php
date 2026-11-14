@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\MarketingTemplateController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\AwsSesWebhookController;
 use App\Http\Controllers\MarketingPublicController;
+use App\Http\Controllers\SystemUtilityController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to dashboard
@@ -34,9 +35,7 @@ Route::prefix('marketing')->name('marketing.')->group(function () {
 });
 
 // AWS SES / SNS Webhook Endpoint (No CSRF)
-Route::post('/webhooks/aws/ses', [AwsSesWebhookController::class, 'handle'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
-    ->name('webhooks.aws.ses');
+Route::post('/webhooks/aws/ses', [AwsSesWebhookController::class, 'handle'])->name('webhooks.aws.ses');
 
 // Protected Admin Panel Routes
 Route::prefix('admin/marketing')->name('admin.marketing.')->middleware('auth')->group(function () {
@@ -78,4 +77,16 @@ Route::prefix('admin/marketing')->name('admin.marketing.')->middleware('auth')->
     Route::post('/settings/ses', [MarketingSettingsController::class, 'updateSesSettings'])->name('settings.ses.update');
     Route::get('/settings/openai', [MarketingSettingsController::class, 'showOpenAiSettings'])->name('settings.openai');
     Route::post('/settings/openai', [MarketingSettingsController::class, 'updateOpenAiSettings'])->name('settings.openai.update');
+
+    // 9. System & Database Utilities
+    Route::get('/system/migrate', [SystemUtilityController::class, 'migrate'])->name('system.migrate');
+    Route::get('/system/routes/{action?}', [SystemUtilityController::class, 'routes'])->name('system.routes');
+    Route::get('/system/artisan/{command}', [SystemUtilityController::class, 'run'])->name('system.artisan');
+});
+
+// 10. Direct Artisan Web Runner (Accessible with key or during maintenance/setup)
+Route::prefix('artisan')->name('artisan.')->group(function () {
+    Route::get('/migrate', [SystemUtilityController::class, 'migrate'])->name('migrate');
+    Route::get('/routes/{action?}', [SystemUtilityController::class, 'routes'])->name('routes');
+    Route::get('/run/{command}', [SystemUtilityController::class, 'run'])->name('run');
 });
