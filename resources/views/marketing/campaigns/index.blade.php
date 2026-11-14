@@ -117,8 +117,8 @@
                             Report
                         </a>
 
-                        @if($camp->status === 'draft' || $camp->status === 'paused' || ($camp->status === 'running' && $camp->sent_count < $camp->total_recipients))
-                        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $camp) }}" class="d-inline" title="Send Instantly">
+                        @if(in_array($camp->status, ['draft', 'scheduled', 'paused', 'completed']) || ($camp->status === 'running' && $camp->sent_count < $camp->total_recipients))
+                        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $camp) }}" class="d-inline" title="Send Instantly via Live SES" onsubmit="const btn = this.querySelector('button[type=submit]'); if(btn) { btn.disabled = true; }">
                             @csrf
                             <input type="hidden" name="mode" value="instant">
                             <button type="submit" class="btn btn-sm" style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; padding: 3px 8px;" title="Send Instantly via Live SES">

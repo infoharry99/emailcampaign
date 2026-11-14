@@ -104,8 +104,14 @@ class ProcessCampaignEmailsJob implements ShouldQueue
                 ]
             );
 
-            // If already generated or sent, do not duplicate
-            if (in_array($emailRecord->status, ['sent', 'delivered', 'queued', 'bounced'])) {
+            // If the record exists from a previous test send, reset it to pending for the real campaign send
+            if (str_starts_with($emailRecord->subject, '[TEST]')) {
+                $emailRecord->update([
+                    'status' => 'pending',
+                    'body_html' => '',
+                    'ses_message_id' => null,
+                ]);
+            } elseif (in_array($emailRecord->status, ['sent', 'delivered', 'queued', 'bounced'])) {
                 continue;
             }
 

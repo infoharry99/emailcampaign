@@ -81,20 +81,25 @@ class MarketingCampaign extends Model
 
     public function recalculateStats(): void
     {
-        $emailCount = $this->emails()->count();
         $targetCount = $this->calculateTargetRecipientsCount();
+        $realEmails = $this->emails()->where(function ($q) {
+            $q->whereNull('subject')->orWhere('subject', 'not like', '[TEST]%');
+        });
+
+        $realCount = (clone $realEmails)->count();
+        $totalRecipients = $realCount > 0 ? max($realCount, $targetCount) : $targetCount;
 
         $this->update([
-            'total_recipients' => $emailCount > 0 ? $emailCount : $targetCount,
-            'generated_count' => $this->emails()->whereNotNull('generated_at')->count(),
-            'queued_count' => $this->emails()->whereIn('status', ['queued', 'sent', 'delivered'])->count(),
-            'sent_count' => $this->emails()->whereIn('status', ['sent', 'delivered', 'opened', 'clicked'])->count(),
-            'delivered_count' => $this->emails()->whereIn('status', ['delivered', 'opened', 'clicked'])->count(),
-            'opened_count' => $this->emails()->whereIn('status', ['opened', 'clicked'])->count(),
-            'clicked_count' => $this->emails()->where('status', 'clicked')->count(),
-            'bounced_count' => $this->emails()->where('status', 'bounced')->count(),
-            'complained_count' => $this->emails()->where('status', 'complained')->count(),
-            'failed_count' => $this->emails()->where('status', 'failed')->count(),
+            'total_recipients' => $totalRecipients,
+            'generated_count' => (clone $realEmails)->whereNotNull('generated_at')->count(),
+            'queued_count' => (clone $realEmails)->whereIn('status', ['queued', 'sent', 'delivered'])->count(),
+            'sent_count' => (clone $realEmails)->whereIn('status', ['sent', 'delivered', 'opened', 'clicked'])->count(),
+            'delivered_count' => (clone $realEmails)->whereIn('status', ['delivered', 'opened', 'clicked'])->count(),
+            'opened_count' => (clone $realEmails)->whereIn('status', ['opened', 'clicked'])->count(),
+            'clicked_count' => (clone $realEmails)->where('status', 'clicked')->count(),
+            'bounced_count' => (clone $realEmails)->where('status', 'bounced')->count(),
+            'complained_count' => (clone $realEmails)->where('status', 'complained')->count(),
+            'failed_count' => (clone $realEmails)->where('status', 'failed')->count(),
         ]);
     }
 }

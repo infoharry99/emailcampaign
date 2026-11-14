@@ -24,14 +24,15 @@
 
     <!-- Campaign Action Buttons -->
     <div class="d-flex gap-2">
-        @if($campaign->status === 'draft' || $campaign->status === 'paused')
-        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $campaign) }}">
+        @if(in_array($campaign->status, ['draft', 'scheduled', 'paused', 'completed']))
+        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $campaign) }}" onsubmit="const btn = this.querySelector('button[type=submit]'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class=\'fa-solid fa-spinner fa-spin me-1\'></i> Dispatching...'; }">
             @csrf
             <input type="hidden" name="mode" value="instant">
-            <button type="submit" class="btn btn-success">
+            <button type="submit" class="btn btn-success fw-bold">
                 <i class="fa-solid fa-bolt me-1"></i> Send Instantly (Live SES)
             </button>
         </form>
+        @if($campaign->status !== 'completed')
         <form method="POST" action="{{ route('admin.marketing.campaigns.start', $campaign) }}">
             @csrf
             <button type="submit" class="btn btn-outline-success">
@@ -39,12 +40,13 @@
             </button>
         </form>
         @endif
+        @endif
 
         @if($campaign->status === 'running')
-        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $campaign) }}">
+        <form method="POST" action="{{ route('admin.marketing.campaigns.start', $campaign) }}" onsubmit="const btn = this.querySelector('button[type=submit]'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class=\'fa-solid fa-spinner fa-spin me-1\'></i> Dispatching...'; }">
             @csrf
             <input type="hidden" name="mode" value="instant">
-            <button type="submit" class="btn btn-success" title="Force immediate dispatch without waiting for queue worker">
+            <button type="submit" class="btn btn-success fw-bold" title="Force immediate dispatch without waiting for queue worker">
                 <i class="fa-solid fa-bolt me-1"></i> Dispatch Instantly Now
             </button>
         </form>
