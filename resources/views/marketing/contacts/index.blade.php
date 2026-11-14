@@ -36,11 +36,19 @@
 <!-- ── Clean Filters Bar ── -->
 <div class="flat-card p-3 mb-4">
     <form method="GET" action="{{ route('admin.marketing.contacts.index') }}" class="row g-2 align-items-center">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white border-end-0 text-muted" style="border-radius: 8px 0 0 8px; border-color: #e2e8f0;"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" name="search" value="{{ $search }}" class="form-control border-start-0" style="border-radius: 0 8px 8px 0; border-color: #e2e8f0; font-size: 0.82rem;" placeholder="Search by name, email, or company...">
             </div>
+        </div>
+        <div class="col-md-2">
+            <select name="list_id" class="form-select form-select-sm" onchange="this.form.submit()" style="border-radius: 8px; border-color: #e2e8f0; font-size: 0.82rem;">
+                <option value="">All Contact Lists</option>
+                @foreach($lists as $lst)
+                    <option value="{{ $lst->id }}" {{ (string)$listId === (string)$lst->id ? 'selected' : '' }}>📁 {{ $lst->name }}</option>
+                @endforeach
+            </select>
         </div>
         <div class="col-md-2">
             <select name="consent_status" class="form-select form-select-sm" onchange="this.form.submit()" style="border-radius: 8px; border-color: #e2e8f0; font-size: 0.82rem;">
@@ -57,14 +65,7 @@
                 <option value="unsubscribed" {{ $subscription === 'unsubscribed' ? 'selected' : '' }}>Unsubscribed</option>
             </select>
         </div>
-        <div class="col-md-2">
-            <select name="verification_status" class="form-select form-select-sm" onchange="this.form.submit()" style="border-radius: 8px; border-color: #e2e8f0; font-size: 0.82rem;">
-                <option value="">Verification Status</option>
-                <option value="valid" {{ $verification === 'valid' ? 'selected' : '' }}>Valid</option>
-                <option value="unverified" {{ $verification === 'unverified' ? 'selected' : '' }}>Unverified</option>
-            </select>
-        </div>
-        <div class="col-md-2 d-flex gap-2">
+        <div class="col-md-3 d-flex gap-2">
             <button type="submit" class="btn btn-sm btn-dark w-100" style="border-radius: 8px;">Filter</button>
             <a href="{{ route('admin.marketing.contacts.index') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">Reset</a>
         </div>
@@ -95,6 +96,15 @@
                     <td>
                         <div class="fw-bold" style="color: #0f172a;">{{ $contact->name ?: 'N/A' }}</div>
                         <div class="text-primary small">{{ $contact->email }}</div>
+                        @if($contact->lists->isNotEmpty())
+                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                @foreach($contact->lists as $cl)
+                                    <span class="badge bg-light text-secondary border" style="font-size: 0.68rem; font-weight: 500;">
+                                        <i class="fa-solid fa-folder me-1 text-primary"></i>{{ $cl->name }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        @endif
                     </td>
                     <td>
                         <div class="fw-semibold" style="color: #0f172a;">{{ $contact->company ?: '—' }}</div>

@@ -68,9 +68,20 @@
                         <label class="form-label fw-semibold" style="font-size: 0.8rem;">Target Contacts</label>
                         <select name="target_criteria" class="form-select" style="border-radius: 8px; border-color: #e2e8f0;">
                             <option value="all" {{ old('target_criteria', $campaign->target_criteria) === 'all' ? 'selected' : '' }}>All Verified & Subscribed Contacts</option>
-                            <option value="business_type:Technology" {{ old('target_criteria', $campaign->target_criteria) === 'business_type:Technology' ? 'selected' : '' }}>Industry: Technology</option>
-                            <option value="business_type:Enterprise" {{ old('target_criteria', $campaign->target_criteria) === 'business_type:Enterprise' ? 'selected' : '' }}>Industry: Enterprise</option>
-                            <option value="business_type:Logistics" {{ old('target_criteria', $campaign->target_criteria) === 'business_type:Logistics' ? 'selected' : '' }}>Industry: Logistics</option>
+                            @if(isset($lists) && $lists->count() > 0)
+                                <optgroup label="📁 Custom Contact Lists">
+                                    @foreach($lists as $list)
+                                        <option value="list:{{ $list->id }}" {{ old('target_criteria', $campaign->target_criteria) === 'list:' . $list->id ? 'selected' : '' }}>
+                                            {{ $list->name }} ({{ number_format($list->contacts_count) }} contacts)
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                            <optgroup label="🏢 Filter by Industry">
+                                <option value="business_type:Technology" {{ old('target_criteria', $campaign->target_criteria) === 'business_type:Technology' ? 'selected' : '' }}>Industry: Technology</option>
+                                <option value="business_type:Enterprise" {{ old('target_criteria', $campaign->target_criteria) === 'business_type:Enterprise' ? 'selected' : '' }}>Industry: Enterprise</option>
+                                <option value="business_type:Logistics" {{ old('target_criteria', $campaign->target_criteria) === 'business_type:Logistics' ? 'selected' : '' }}>Industry: Logistics</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>

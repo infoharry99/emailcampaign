@@ -51,6 +51,22 @@
                         <label class="form-label fw-semibold" style="font-size: 0.8rem;">Industry / Business Type</label>
                         <input type="text" name="business_type" class="form-control form-control-sm" value="{{ old('business_type', $contact->business_type) }}" style="border-radius: 8px; border-color: #e2e8f0;">
                     </div>
+                    @if(isset($lists) && $lists->isNotEmpty())
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" style="font-size: 0.8rem;">Assign to Contact Lists</label>
+                        <div class="d-flex flex-wrap gap-3 p-2 bg-light rounded border">
+                            @php $assignedListIds = old('list_ids', $contact->lists->pluck('id')->toArray()); @endphp
+                            @foreach($lists as $list)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="list_ids[]" value="{{ $list->id }}" id="list_{{ $list->id }}" {{ in_array($list->id, $assignedListIds) ? 'checked' : '' }}>
+                                    <label class="form-check-label small" for="list_{{ $list->id }}">
+                                        📁 {{ $list->name }}
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
                 <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary">

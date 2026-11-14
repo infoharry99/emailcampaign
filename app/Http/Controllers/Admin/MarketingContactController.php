@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MarketingContact;
 use App\Models\MarketingConsentLog;
+use App\Models\MarketingContactList;
 use App\Models\MarketingSuppression;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class MarketingContactController extends Controller
         $consent = $request->get('consent_status');
         $subscription = $request->get('subscription_status');
         $verification = $request->get('verification_status');
+        $listId = $request->get('list_id');
 
         $query = MarketingContact::query();
 
@@ -40,14 +42,22 @@ class MarketingContactController extends Controller
             $query->where('verification_status', $verification);
         }
 
-        $contacts = $query->latest()->paginate(25)->withQueryString();
+        if ($listId) {
+            $query->whereHas('lists', function ($q) use ($listId) {
+                $q->where('marketing_contact_lists.id', $listId);
+            });
+        }
 
-        return view('marketing.contacts.index', compact('contacts', 'search', 'consent', 'subscription', 'verification'));
+        $contacts = $query->with('lists')->latest()->paginate(25)->withQueryString();
+        $lists = MarketingContactList::orderBy('name')->get();
+
+        return view('marketing.contacts.index', compact('contacts', 'search', 'consent', 'subscription', 'verification', 'listId', 'lists'));
     }
 
     public function create()
     {
-        return view('marketing.contacts.create');
+        $lists = MarketingContactList::orderBy('name')->get();
+        return view('marketing.contacts.create', compact('lists'));
     }
 
     public function store(Request $request)
@@ -64,6 +74,8 @@ class MarketingContactController extends Controller
             'consent_proof' => 'nullable|string',
             'subscription_status' => 'required|in:subscribed,unsubscribed',
             'verification_status' => 'required|in:unverified,valid,invalid,risky',
+            'list_ids' => 'nullable|array',
+            'list_ids.*' => 'exists:marketing_contact_lists,id',
         ]);
 
         if ($validated['consent_status'] === 'granted') {
@@ -71,6 +83,10 @@ class MarketingContactController extends Controller
         }
 
         $contact = MarketingContact::create($validated);
+
+        if ($request->has('list_ids')) {
+            $contact->lists()->sync($request->input('list_ids', []));
+        }
 
         MarketingConsentLog::create([
             'contact_id' => $contact->id,
@@ -88,7 +104,9 @@ class MarketingContactController extends Controller
 
     public function edit(MarketingContact $contact)
     {
-        return view('marketing.contacts.edit', compact('contact'));
+        $lists = MarketingContactList::orderBy('name')->get();
+        $contact->load('lists');
+        return view('marketing.contacts.edit', compact('contact', 'lists'));
     }
 
     public function update(Request $request, MarketingContact $contact)
@@ -104,9 +122,13 @@ class MarketingContactController extends Controller
             'consent_source' => 'nullable|string|max:255',
             'subscription_status' => 'required|in:subscribed,unsubscribed',
             'verification_status' => 'required|in:unverified,valid,invalid,risky',
+            'list_ids' => 'nullable|array',
+            'list_ids.*' => 'exists:marketing_contact_lists,id',
         ]);
 
         $contact->update($validated);
+
+        $contact->lists()->sync($request->input('list_ids', []));
 
         return redirect()->route('admin.marketing.contacts.index')->with('success', 'Contact updated successfully.');
     }
@@ -119,7 +141,8 @@ class MarketingContactController extends Controller
 
     public function showImport()
     {
-        return view('marketing.contacts.import');
+        $lists = MarketingContactList::withCount('contacts')->orderBy('name')->get();
+        return view('marketing.contacts.import', compact('lists'));
     }
 
     public function processImport(Request $request)
@@ -128,7 +151,21 @@ class MarketingContactController extends Controller
             'csv_file' => 'required|file|mimes:csv,txt|max:10240',
             'consent_confirmation' => 'required|accepted',
             'consent_source' => 'required|string|max:255',
+            'contact_list_id' => 'nullable|exists:marketing_contact_lists,id',
+            'new_list_name' => 'nullable|string|max:255',
         ]);
+
+        // Resolve or create target contact list
+        $targetList = null;
+        if ($request->filled('new_list_name')) {
+            $targetList = MarketingContactList::firstOrCreate([
+                'name' => trim($request->input('new_list_name')),
+            ], [
+                'description' => 'Imported via CSV on ' . now()->format('d M Y, h:i A'),
+            ]);
+        } elseif ($request->filled('contact_list_id')) {
+            $targetList = MarketingContactList::find($request->input('contact_list_id'));
+        }
 
         $file = $request->file('csv_file');
         $handle = fopen($file->getRealPath(), 'r');
@@ -138,18 +175,33 @@ class MarketingContactController extends Controller
             return back()->with('error', 'CSV file is empty.');
         }
 
+        // Clean UTF-8 BOM if present
+        if (isset($header[0])) {
+            $header[0] = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $header[0]);
+        }
         $header = array_map(fn($col) => strtolower(trim($col)), $header);
-        $emailIdx = array_search('email', $header);
 
+        // Helper to find column index matching candidate aliases
+        $findCol = function(array $candidates) use ($header) {
+            foreach ($candidates as $cand) {
+                $idx = array_search(strtolower($cand), $header);
+                if ($idx !== false) return $idx;
+            }
+            return false;
+        };
+
+        $emailIdx = $findCol(['email', 'work email', 'work_email', 'email address', 'e-mail']);
         if ($emailIdx === false) {
-            return back()->with('error', 'CSV must have an "email" column.');
+            return back()->with('error', 'CSV must have an "email" or "work email" column.');
         }
 
-        $nameIdx = array_search('name', $header);
-        $companyIdx = array_search('company', $header);
-        $websiteIdx = array_search('website', $header);
-        $phoneIdx = array_search('phone', $header);
-        $typeIdx = array_search('business_type', $header);
+        $nameIdx = $findCol(['name', 'full name', 'full_name', 'contact name']);
+        $firstNameIdx = $findCol(['first name', 'first_name', 'fname']);
+        $lastNameIdx = $findCol(['last name', 'last_name', 'lname']);
+        $companyIdx = $findCol(['company', 'company name', 'organization', 'account name']);
+        $websiteIdx = $findCol(['website', 'web', 'url', 'company website']);
+        $phoneIdx = $findCol(['phone', 'phone number', 'mobile', 'telephone']);
+        $typeIdx = $findCol(['business_type', 'industry', 'industries', 'sector']);
 
         $imported = 0;
         $skipped = 0;
@@ -164,6 +216,9 @@ class MarketingContactController extends Controller
                 }
 
                 $email = strtolower(trim($row[$emailIdx]));
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    continue;
+                }
 
                 // Check suppression
                 if (MarketingSuppression::isSuppressed($email)) {
@@ -171,32 +226,55 @@ class MarketingContactController extends Controller
                     continue;
                 }
 
+                // Resolve contact name from single name or first+last name columns
+                $contactName = null;
+                if ($nameIdx !== false && !empty($row[$nameIdx])) {
+                    $contactName = trim($row[$nameIdx]);
+                } elseif ($firstNameIdx !== false || $lastNameIdx !== false) {
+                    $first = $firstNameIdx !== false ? trim($row[$firstNameIdx] ?? '') : '';
+                    $last = $lastNameIdx !== false ? trim($row[$lastNameIdx] ?? '') : '';
+                    $contactName = trim("{$first} {$last}") ?: null;
+                }
+
+                $company = $companyIdx !== false ? (trim($row[$companyIdx] ?? '') ?: null) : null;
+                $website = $websiteIdx !== false ? (trim($row[$websiteIdx] ?? '') ?: null) : null;
+                $phone = $phoneIdx !== false ? (trim($row[$phoneIdx] ?? '') ?: null) : null;
+                $businessType = ($typeIdx !== false && !empty($row[$typeIdx])) ? trim($row[$typeIdx]) : 'Business';
+
                 // Check existing
                 $existing = MarketingContact::where('email', $email)->first();
                 if ($existing) {
-                    // Update details but respect existing unsubscribe state
                     if ($existing->subscription_status === 'unsubscribed') {
                         $skipped++;
                         continue;
                     }
 
-                    $existing->update([
-                        'name' => $nameIdx !== false ? ($row[$nameIdx] ?? $existing->name) : $existing->name,
-                        'company' => $companyIdx !== false ? ($row[$companyIdx] ?? $existing->company) : $existing->company,
-                        'website' => $websiteIdx !== false ? ($row[$websiteIdx] ?? $existing->website) : $existing->website,
-                        'phone' => $phoneIdx !== false ? ($row[$phoneIdx] ?? $existing->phone) : $existing->phone,
-                    ]);
+                    $updateData = [];
+                    if ($contactName && empty($existing->name)) $updateData['name'] = $contactName;
+                    if ($company && empty($existing->company)) $updateData['company'] = $company;
+                    if ($website && empty($existing->website)) $updateData['website'] = $website;
+                    if ($phone && empty($existing->phone)) $updateData['phone'] = $phone;
+                    if ($businessType !== 'Business' && $existing->business_type === 'Business') $updateData['business_type'] = $businessType;
+
+                    if (!empty($updateData)) {
+                        $existing->update($updateData);
+                    }
+
+                    if ($targetList) {
+                        $existing->lists()->syncWithoutDetaching([$targetList->id]);
+                    }
+
                     $imported++;
                     continue;
                 }
 
                 $contact = MarketingContact::create([
                     'email' => $email,
-                    'name' => $nameIdx !== false ? ($row[$nameIdx] ?? null) : null,
-                    'company' => $companyIdx !== false ? ($row[$companyIdx] ?? null) : null,
-                    'website' => $websiteIdx !== false ? ($row[$websiteIdx] ?? null) : null,
-                    'phone' => $phoneIdx !== false ? ($row[$phoneIdx] ?? null) : null,
-                    'business_type' => $typeIdx !== false ? ($row[$typeIdx] ?? 'Business') : 'Business',
+                    'name' => $contactName,
+                    'company' => $company,
+                    'website' => $website,
+                    'phone' => $phone,
+                    'business_type' => $businessType,
                     'consent_status' => 'granted',
                     'consent_date' => now(),
                     'consent_source' => $request->input('consent_source'),
@@ -205,6 +283,10 @@ class MarketingContactController extends Controller
                     'verification_status' => 'valid',
                 ]);
 
+                if ($targetList) {
+                    $contact->lists()->syncWithoutDetaching([$targetList->id]);
+                }
+
                 MarketingConsentLog::create([
                     'contact_id' => $contact->id,
                     'email' => $email,
@@ -212,7 +294,7 @@ class MarketingContactController extends Controller
                     'source' => $request->input('consent_source'),
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
-                    'notes' => 'Imported via CSV with confirmed opt-in.',
+                    'notes' => 'Imported via CSV with confirmed opt-in.' . ($targetList ? " Assigned to list: {$targetList->name}" : ''),
                     'logged_at' => now(),
                 ]);
 
@@ -222,8 +304,12 @@ class MarketingContactController extends Controller
             DB::commit();
             fclose($handle);
 
-            return redirect()->route('admin.marketing.contacts.index')
-                ->with('success', "Import complete! Successfully imported/updated {$imported} contacts. Skipped {$skipped} unsubscribed contacts. Blocked {$suppressed} suppressed addresses.");
+            $msg = "Import complete! Successfully imported/updated {$imported} contacts. Skipped {$skipped} unsubscribed contacts. Blocked {$suppressed} suppressed addresses.";
+            if ($targetList) {
+                $msg .= " All contacts were assigned to List '{$targetList->name}'.";
+            }
+
+            return redirect()->route('admin.marketing.contacts.index')->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
             fclose($handle);

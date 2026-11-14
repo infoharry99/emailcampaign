@@ -62,6 +62,16 @@ class MarketingContact extends Model
         return $this->hasMany(MarketingConsentLog::class, 'contact_id');
     }
 
+    public function lists()
+    {
+        return $this->belongsToMany(
+            MarketingContactList::class,
+            'marketing_contact_list_members',
+            'contact_id',
+            'contact_list_id'
+        )->withTimestamps();
+    }
+
     public function isSendable(): bool
     {
         if ($this->subscription_status !== 'subscribed') {

@@ -420,6 +420,11 @@
                 </a>
             </li>
             <li class="sidebar-item">
+                <a href="{{ route('admin.marketing.lists.index') }}" class="sidebar-link {{ request()->routeIs('admin.marketing.lists.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-list-check text-primary"></i> Contact Lists
+                </a>
+            </li>
+            <li class="sidebar-item">
                 <a href="{{ route('admin.marketing.contacts.import') }}" class="sidebar-link {{ request()->routeIs('admin.marketing.contacts.import') ? 'active' : '' }}">
                     <i class="fa-solid fa-file-import"></i> CSV Bulk Import
                 </a>

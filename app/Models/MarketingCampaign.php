@@ -63,7 +63,12 @@ class MarketingCampaign extends Model
             });
 
         if (!empty($this->target_criteria) && $this->target_criteria !== 'all') {
-            if (str_starts_with($this->target_criteria, 'business_type:')) {
+            if (str_starts_with($this->target_criteria, 'list:')) {
+                $listId = (int) substr($this->target_criteria, 5);
+                $query->whereHas('lists', function ($q) use ($listId) {
+                    $q->where('marketing_contact_lists.id', $listId);
+                });
+            } elseif (str_starts_with($this->target_criteria, 'business_type:')) {
                 $type = substr($this->target_criteria, 14);
                 $query->where('business_type', $type);
             }

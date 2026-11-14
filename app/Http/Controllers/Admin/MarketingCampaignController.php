@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcessCampaignEmailsJob;
 use App\Models\MarketingCampaign;
 use App\Models\MarketingContact;
+use App\Models\MarketingContactList;
 use App\Models\MarketingEmail;
 use App\Models\MarketingTemplate;
 use App\Services\AwsSesService;
@@ -25,14 +26,16 @@ class MarketingCampaignController extends Controller
         return view('marketing.campaigns.index', compact('campaigns'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $templates = MarketingTemplate::where('is_active', true)->get();
         $totalEligibleContacts = MarketingContact::where('subscription_status', 'subscribed')
             ->where('consent_status', 'granted')
             ->count();
+        $lists = MarketingContactList::withCount('contacts')->orderBy('name')->get();
+        $defaultTarget = $request->query('target_criteria', 'all');
 
-        return view('marketing.campaigns.create', compact('templates', 'totalEligibleContacts'));
+        return view('marketing.campaigns.create', compact('templates', 'totalEligibleContacts', 'lists', 'defaultTarget'));
     }
 
     public function store(Request $request)
@@ -74,7 +77,8 @@ class MarketingCampaignController extends Controller
     public function edit(MarketingCampaign $campaign)
     {
         $templates = MarketingTemplate::where('is_active', true)->get();
-        return view('marketing.campaigns.edit', compact('campaign', 'templates'));
+        $lists = MarketingContactList::withCount('contacts')->orderBy('name')->get();
+        return view('marketing.campaigns.edit', compact('campaign', 'templates', 'lists'));
     }
 
     public function update(Request $request, MarketingCampaign $campaign)

@@ -46,6 +46,21 @@
                         <label class="form-label fw-semibold">Business Industry / Niche</label>
                         <input type="text" name="business_type" class="form-control" value="{{ old('business_type', 'Technology') }}" placeholder="e.g. SaaS, Logistics, Retail">
                     </div>
+                    @if(isset($lists) && $lists->isNotEmpty())
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Assign to Contact Lists</label>
+                        <div class="d-flex flex-wrap gap-3 p-2 bg-light rounded border">
+                            @foreach($lists as $list)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="list_ids[]" value="{{ $list->id }}" id="list_{{ $list->id }}" {{ in_array($list->id, old('list_ids', [])) ? 'checked' : '' }}>
+                                    <label class="form-check-label small" for="list_{{ $list->id }}">
+                                        📁 {{ $list->name }}
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
                 <h5 class="fw-bold border-bottom pb-2 mb-3 mt-4 text-primary"><i class="fa-solid fa-shield-halved me-2"></i> Permission & Marketing Consent</h5>

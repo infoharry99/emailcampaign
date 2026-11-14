@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\MarketingAiWriterController;
 use App\Http\Controllers\Admin\MarketingCampaignController;
 use App\Http\Controllers\Admin\MarketingContactController;
+use App\Http\Controllers\Admin\MarketingContactListController;
 use App\Http\Controllers\Admin\MarketingDashboardController;
 use App\Http\Controllers\Admin\MarketingEmailLogController;
 use App\Http\Controllers\Admin\MarketingSettingsController;
@@ -46,6 +47,11 @@ Route::prefix('admin/marketing')->name('admin.marketing.')->middleware('auth')->
     Route::get('/contacts/import', [MarketingContactController::class, 'showImport'])->name('contacts.import');
     Route::post('/contacts/import', [MarketingContactController::class, 'processImport'])->name('contacts.import.process');
     Route::resource('contacts', MarketingContactController::class);
+
+    // 2.5 Contact Lists
+    Route::post('/lists/{list}/add-contact', [MarketingContactListController::class, 'addContact'])->name('lists.add-contact');
+    Route::delete('/lists/{list}/remove-contact/{contact}', [MarketingContactListController::class, 'removeContact'])->name('lists.remove-contact');
+    Route::resource('lists', MarketingContactListController::class);
 
     // 3. Campaigns
     Route::post('/campaigns/{campaign}/start', [MarketingCampaignController::class, 'start'])->name('campaigns.start');

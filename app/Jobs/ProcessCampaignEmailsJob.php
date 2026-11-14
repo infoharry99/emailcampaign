@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\MarketingCampaign;
 use App\Models\MarketingContact;
 use App\Models\MarketingEmail;
+use App\Models\MarketingSetting;
 use App\Models\MarketingSuppression;
 use App\Services\OpenAIService;
 use Illuminate\Bus\Queueable;
@@ -54,7 +55,12 @@ class ProcessCampaignEmailsJob implements ShouldQueue
 
         // Filter by target criteria if specified
         if (!empty($fresh->target_criteria) && $fresh->target_criteria !== 'all') {
-            if (str_starts_with($fresh->target_criteria, 'business_type:')) {
+            if (str_starts_with($fresh->target_criteria, 'list:')) {
+                $listId = (int) substr($fresh->target_criteria, 5);
+                $contactsQuery->whereHas('lists', function ($q) use ($listId) {
+                    $q->where('marketing_contact_lists.id', $listId);
+                });
+            } elseif (str_starts_with($fresh->target_criteria, 'business_type:')) {
                 $type = substr($fresh->target_criteria, 14);
                 $contactsQuery->where('business_type', $type);
             }

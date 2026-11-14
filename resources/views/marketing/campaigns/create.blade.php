@@ -77,10 +77,21 @@
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Target Contacts <span class="text-danger">*</span></label>
                         <select name="target_criteria" class="form-select" required>
-                            <option value="all">All Verified & Subscribed Contacts ({{ number_format($totalEligibleContacts) }} leads)</option>
-                            <option value="business_type:Technology">Industry: Technology</option>
-                            <option value="business_type:Enterprise">Industry: Enterprise</option>
-                            <option value="business_type:Retail">Industry: Retail</option>
+                            <option value="all" {{ (old('target_criteria', $defaultTarget ?? '') === 'all') ? 'selected' : '' }}>All Verified & Subscribed Contacts ({{ number_format($totalEligibleContacts) }} leads)</option>
+                            @if(isset($lists) && $lists->count() > 0)
+                                <optgroup label="📁 Custom Contact Lists">
+                                    @foreach($lists as $list)
+                                        <option value="list:{{ $list->id }}" {{ (old('target_criteria', $defaultTarget ?? '') === 'list:' . $list->id) ? 'selected' : '' }}>
+                                            {{ $list->name }} ({{ number_format($list->contacts_count) }} contacts)
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                            <optgroup label="🏢 Filter by Industry">
+                                <option value="business_type:Technology" {{ (old('target_criteria', $defaultTarget ?? '') === 'business_type:Technology') ? 'selected' : '' }}>Industry: Technology</option>
+                                <option value="business_type:Enterprise" {{ (old('target_criteria', $defaultTarget ?? '') === 'business_type:Enterprise') ? 'selected' : '' }}>Industry: Enterprise</option>
+                                <option value="business_type:Retail" {{ (old('target_criteria', $defaultTarget ?? '') === 'business_type:Retail') ? 'selected' : '' }}>Industry: Retail</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="col-md-3">
