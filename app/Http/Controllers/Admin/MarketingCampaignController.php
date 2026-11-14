@@ -1,0 +1,195 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Jobs\ProcessCampaignEmailsJob;
+use App\Models\MarketingCampaign;
+use App\Models\MarketingContact;
+use App\Models\MarketingEmail;
+use App\Models\MarketingTemplate;
+use App\Services\AwsSesService;
+use App\Services\OpenAIService;
+use Illuminate\Http\Request;
+
+class MarketingCampaignController extends Controller
+{
+    public function index()
+    {
+        $campaigns = MarketingCampaign::latest()->paginate(15);
+        foreach ($campaigns as $camp) {
+            if ($camp->total_recipients === 0) {
+                $camp->recalculateStats();
+            }
+        }
+        return view('marketing.campaigns.index', compact('campaigns'));
+    }
+
+    public function create()
+    {
+        $templates = MarketingTemplate::where('is_active', true)->get();
+        $totalEligibleContacts = MarketingContact::where('subscription_status', 'subscribed')
+            ->where('consent_status', 'granted')
+            ->count();
+
+        return view('marketing.campaigns.create', compact('templates', 'totalEligibleContacts'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'purpose' => 'required|string',
+            'product_service_details' => 'nullable|string',
+            'target_criteria' => 'required|string',
+            'subject' => 'nullable|string|max:255',
+            'content' => 'nullable|string',
+            'sending_date' => 'nullable|date',
+            'sending_time' => 'nullable',
+            'sending_mode' => 'required|in:ai,template,both',
+        ]);
+
+        if (!empty($validated['sending_date']) && !empty($validated['sending_time'])) {
+            $validated['scheduled_at'] = $validated['sending_date'] . ' ' . $validated['sending_time'];
+            $validated['status'] = 'scheduled';
+        } else {
+            $validated['status'] = 'draft';
+        }
+
+        $campaign = MarketingCampaign::create($validated);
+        $campaign->recalculateStats();
+
+        return redirect()->route('admin.marketing.campaigns.show', $campaign)
+            ->with('success', 'Campaign created successfully.');
+    }
+
+    public function show(MarketingCampaign $campaign)
+    {
+        $campaign->recalculateStats();
+        $emails = $campaign->emails()->with('contact')->latest()->paginate(25);
+        return view('marketing.campaigns.show', compact('campaign', 'emails'));
+    }
+
+    public function edit(MarketingCampaign $campaign)
+    {
+        $templates = MarketingTemplate::where('is_active', true)->get();
+        return view('marketing.campaigns.edit', compact('campaign', 'templates'));
+    }
+
+    public function update(Request $request, MarketingCampaign $campaign)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'purpose' => 'required|string',
+            'product_service_details' => 'nullable|string',
+            'target_criteria' => 'required|string',
+            'subject' => 'nullable|string|max:255',
+            'content' => 'nullable|string',
+            'sending_mode' => 'required|in:ai,template,both',
+        ]);
+
+        $campaign->update($validated);
+        $campaign->recalculateStats();
+
+        return redirect()->route('admin.marketing.campaigns.show', $campaign)
+            ->with('success', 'Campaign updated successfully.');
+    }
+
+    public function start(MarketingCampaign $campaign)
+    {
+        $campaign->update(['status' => 'running']);
+        ProcessCampaignEmailsJob::dispatch($campaign);
+
+        return back()->with('success', 'Campaign dispatched to queue workers successfully.');
+    }
+
+    public function pause(MarketingCampaign $campaign)
+    {
+        $campaign->update(['status' => 'paused']);
+        return back()->with('success', 'Campaign has been paused. Any running jobs will halt.');
+    }
+
+    public function resume(MarketingCampaign $campaign)
+    {
+        $campaign->update(['status' => 'running']);
+        ProcessCampaignEmailsJob::dispatch($campaign);
+        return back()->with('success', 'Campaign resumed successfully.');
+    }
+
+    public function cancel(MarketingCampaign $campaign)
+    {
+        $campaign->update(['status' => 'cancelled']);
+        return back()->with('success', 'Campaign cancelled.');
+    }
+
+    public function duplicate(MarketingCampaign $campaign)
+    {
+        $newCampaign = $campaign->replicate([
+            'total_recipients', 'generated_count', 'queued_count', 'sent_count',
+            'delivered_count', 'opened_count', 'clicked_count', 'bounced_count',
+            'complained_count', 'failed_count', 'started_at', 'completed_at'
+        ]);
+        $newCampaign->name = 'Copy of ' . $campaign->name;
+        $newCampaign->status = 'draft';
+        $newCampaign->save();
+        $newCampaign->recalculateStats();
+
+        return redirect()->route('admin.marketing.campaigns.show', $newCampaign)
+            ->with('success', 'Campaign duplicated as draft.');
+    }
+
+    public function testSend(Request $request, MarketingCampaign $campaign, AwsSesService $sesService, OpenAIService $aiService)
+    {
+        $request->validate([
+            'test_email' => 'required|email',
+        ]);
+
+        $testContact = MarketingContact::firstOrCreate(
+            ['email' => $request->input('test_email')],
+            [
+                'name' => 'Test Lead',
+                'company' => 'Acme Corporation',
+                'website' => 'https://example.com',
+                'business_type' => 'Technology',
+                'consent_status' => 'granted',
+                'subscription_status' => 'subscribed',
+                'verification_status' => 'valid',
+                'unsubscribe_token' => 'test-preview-' . uniqid(),
+            ]
+        );
+
+        if ($testContact->consent_status !== 'granted') {
+            $testContact->update(['consent_status' => 'granted', 'subscription_status' => 'subscribed']);
+        }
+
+        $aiDraft = $aiService->generateMarketingEmail($testContact, $campaign);
+
+        $testEmailRecord = MarketingEmail::updateOrCreate(
+            [
+                'campaign_id' => $campaign->id,
+                'contact_id' => $testContact->id,
+            ],
+            [
+                'recipient_email' => $request->input('test_email'),
+                'recipient_name' => 'Test Lead',
+                'subject' => '[TEST] ' . $aiDraft['subject'],
+                'body_html' => $aiDraft['body_html'],
+                'body_text' => $aiDraft['body_text'],
+                'status' => 'pending',
+                'error_message' => null,
+                'is_ai_generated' => true,
+            ]
+        );
+
+        $result = $sesService->sendMarketingEmail($testEmailRecord);
+
+        if ($result['success']) {
+            return back()->with('success', "Test email dispatched successfully to {$request->input('test_email')}.");
+        } else {
+            $msg = $result['error'] ?? $result['reason'] ?? 'Unknown error';
+            return back()->with('error', "Failed sending test email: {$msg}");
+        }
+    }
+}
