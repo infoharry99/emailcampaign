@@ -83,10 +83,3 @@ Route::prefix('admin/marketing')->name('admin.marketing.')->middleware('auth')->
     Route::get('/system/routes/{action?}', [SystemUtilityController::class, 'routes'])->name('system.routes');
     Route::get('/system/artisan/{command}', [SystemUtilityController::class, 'run'])->name('system.artisan');
 });
-
-// 10. Direct Artisan Web Runner (Accessible with key or during maintenance/setup)
-Route::prefix('artisan')->name('artisan.')->group(function () {
-    Route::get('/migrate', [SystemUtilityController::class, 'migrate'])->name('migrate');
-    Route::get('/routes/{action?}', [SystemUtilityController::class, 'routes'])->name('routes');
-    Route::get('/run/{command}', [SystemUtilityController::class, 'run'])->name('run');
-});

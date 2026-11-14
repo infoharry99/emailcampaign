@@ -31,19 +31,32 @@ class SystemUtilityController extends Controller
      */
     protected function authorizeAccess(Request $request): bool
     {
-        // 1. Authenticated users always allowed
-        if (Auth::check()) {
+        // 1. Allow if database is unmigrated (e.g. sessions or users table does not exist yet)
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('users') || !\Illuminate\Support\Facades\Schema::hasTable('sessions')) {
+                return true;
+            }
+        } catch (\Throwable $e) {
             return true;
         }
 
-        // 2. Allow if secret key matches (defaults to thenexteck2026 or ARTISAN_KEY from .env)
+        // 2. Authenticated users always allowed
+        try {
+            if (Auth::check()) {
+                return true;
+            }
+        } catch (\Throwable $e) {
+            // Ignore if auth check fails during setup
+        }
+
+        // 3. Allow if secret key matches (defaults to thenexteck2026 or ARTISAN_KEY from .env)
         $secretKey = env('ARTISAN_KEY', 'thenexteck2026');
         if ($request->query('key') === $secretKey || $request->header('X-Artisan-Key') === $secretKey) {
             return true;
         }
 
-        // 3. Allow in local development / debug mode
-        if (config('app.debug') && in_array($request->ip(), ['127.0.0.1', '::1', 'localhost'])) {
+        // 4. Allow in local development or debug mode
+        if (config('app.debug')) {
             return true;
         }
 
