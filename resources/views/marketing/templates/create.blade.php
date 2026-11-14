@@ -84,12 +84,15 @@
                     </div>
 
                     <!-- Quill Visual Editor -->
+                    @php
+                        $initialTemplateContent = old('content', '<p>Hi {{name}},</p><p>We would love to connect with {{company}} regarding our latest solutions.</p>');
+                    @endphp
                     <div id="quillEditorWrapper">
-                        <div id="quillEditor" style="min-height: 240px; background-color: #ffffff;">{!! old('content', '<p>Hi {{name}},</p><p>We would love to connect with {{company}} regarding our latest solutions.</p>') !!}</div>
+                        <div id="quillEditor" style="min-height: 240px; background-color: #ffffff;">{!! $initialTemplateContent !!}</div>
                     </div>
 
                     <!-- Raw HTML Textarea -->
-                    <textarea name="content" id="templateContent" class="form-control font-monospace d-none" rows="10" required>{{ old('content', '<p>Hi {{name}},</p><p>We would love to connect with {{company}} regarding our latest solutions.</p>') }}</textarea>
+                    <textarea name="content" id="templateContent" class="form-control font-monospace d-none" rows="10" required>{{ $initialTemplateContent }}</textarea>
                 </div>
 
                 <div class="form-check mb-4">

@@ -124,12 +124,15 @@
                         </div>
 
                         <!-- Quill Visual Editor -->
+                        @php
+                            $initialContent = old('content', '<p>Hi {{name}},</p><p>We help businesses like {{company}} scale with high deliverability.</p>');
+                        @endphp
                         <div id="quillEditorWrapper">
-                            <div id="quillEditor" style="min-height: 220px; background-color: #ffffff;">{!! old('content', '<p>Hi {{name}},</p><p>We help businesses like {{company}} scale with high deliverability.</p>') !!}</div>
+                            <div id="quillEditor" style="min-height: 220px; background-color: #ffffff;">{!! $initialContent !!}</div>
                         </div>
 
                         <!-- Raw HTML Textarea (Toggled via HTML Source button) -->
-                        <textarea name="content" id="templateContent" class="form-control font-monospace d-none" rows="8" placeholder="<p>Hi @{{name}},</p>">{{ old('content', '<p>Hi {{name}},</p><p>We help businesses like {{company}} scale with high deliverability.</p>') }}</textarea>
+                        <textarea name="content" id="templateContent" class="form-control font-monospace d-none" rows="8" placeholder="<p>Hi @{{name}},</p>">{{ $initialContent }}</textarea>
                     </div>
 
                     <!-- Email Attachments (Multiple) -->
