@@ -12,6 +12,7 @@ use App\Models\MarketingTemplate;
 use App\Services\AwsSesService;
 use App\Services\OpenAIService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class MarketingCampaignController extends Controller
 {
@@ -51,6 +52,8 @@ class MarketingCampaignController extends Controller
             'sending_date' => 'nullable|date',
             'sending_time' => 'nullable',
             'sending_mode' => 'required|in:ai,template,both',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|max:20480',
         ]);
 
         if (!empty($validated['sending_date']) && !empty($validated['sending_time'])) {
@@ -59,6 +62,23 @@ class MarketingCampaignController extends Controller
         } else {
             $validated['status'] = 'draft';
         }
+
+        $attachments = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                if ($file->isValid()) {
+                    $origName = $file->getClientOriginalName();
+                    $storedPath = $file->store('marketing/attachments', 'public');
+                    $attachments[] = [
+                        'name' => $origName,
+                        'path' => $storedPath,
+                        'size' => $file->getSize(),
+                        'mime' => $file->getMimeType(),
+                    ];
+                }
+            }
+        }
+        $validated['attachments'] = !empty($attachments) ? $attachments : null;
 
         $campaign = MarketingCampaign::create($validated);
         $campaign->recalculateStats();
@@ -92,7 +112,42 @@ class MarketingCampaignController extends Controller
             'subject' => 'nullable|string|max:255',
             'content' => 'nullable|string',
             'sending_mode' => 'required|in:ai,template,both',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|max:20480',
+            'remove_attachments' => 'nullable|array',
         ]);
+
+        $existingAttachments = $campaign->attachments ?? [];
+        if ($request->has('remove_attachments')) {
+            $removeIndices = array_map('intval', (array) $request->input('remove_attachments'));
+            $filtered = [];
+            foreach ($existingAttachments as $idx => $att) {
+                if (in_array((int)$idx, $removeIndices, true)) {
+                    if (!empty($att['path'])) {
+                        Storage::disk('public')->delete($att['path']);
+                    }
+                } else {
+                    $filtered[] = $att;
+                }
+            }
+            $existingAttachments = array_values($filtered);
+        }
+
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                if ($file->isValid()) {
+                    $origName = $file->getClientOriginalName();
+                    $storedPath = $file->store('marketing/attachments', 'public');
+                    $existingAttachments[] = [
+                        'name' => $origName,
+                        'path' => $storedPath,
+                        'size' => $file->getSize(),
+                        'mime' => $file->getMimeType(),
+                    ];
+                }
+            }
+        }
+        $validated['attachments'] = !empty($existingAttachments) ? $existingAttachments : null;
 
         $campaign->update($validated);
         $campaign->recalculateStats();
@@ -194,7 +249,27 @@ class MarketingCampaignController extends Controller
             $testContact->update(['consent_status' => 'granted', 'subscription_status' => 'subscribed']);
         }
 
-        $aiDraft = $aiService->generateMarketingEmail($testContact, $campaign);
+        if ($campaign->sending_mode === 'template' && !empty($campaign->content)) {
+            $unsubUrl = route('marketing.unsubscribe', ['token' => $testContact->unsubscribe_token]);
+            $bodyHtml = str_replace(
+                ['{{name}}', '{{company}}', '{{email}}', '{{website}}', '{{unsubscribe_url}}'],
+                [$testContact->name, $testContact->company, $testContact->email, $testContact->website, $unsubUrl],
+                $campaign->content
+            );
+            $subject = str_replace(
+                ['{{name}}', '{{company}}', '{{email}}', '{{website}}'],
+                [$testContact->name, $testContact->company, $testContact->email, $testContact->website],
+                $campaign->subject ?: 'Marketing Campaign Preview'
+            );
+            $bodyText = strip_tags($bodyHtml);
+            $isAi = false;
+        } else {
+            $aiDraft = $aiService->generateMarketingEmail($testContact, $campaign);
+            $subject = $aiDraft['subject'];
+            $bodyHtml = $aiDraft['body_html'];
+            $bodyText = $aiDraft['body_text'];
+            $isAi = true;
+        }
 
         $testEmailRecord = MarketingEmail::updateOrCreate(
             [
@@ -204,12 +279,12 @@ class MarketingCampaignController extends Controller
             [
                 'recipient_email' => $request->input('test_email'),
                 'recipient_name' => 'Test Lead',
-                'subject' => '[TEST] ' . $aiDraft['subject'],
-                'body_html' => $aiDraft['body_html'],
-                'body_text' => $aiDraft['body_text'],
+                'subject' => '[TEST] ' . $subject,
+                'body_html' => $bodyHtml,
+                'body_text' => $bodyText,
                 'status' => 'pending',
                 'error_message' => null,
-                'is_ai_generated' => true,
+                'is_ai_generated' => $isAi,
             ]
         );
 

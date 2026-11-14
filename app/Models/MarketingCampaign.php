@@ -17,6 +17,7 @@ class MarketingCampaign extends Model
         'target_criteria',
         'subject',
         'content',
+        'attachments',
         'sending_date',
         'sending_time',
         'scheduled_at',
@@ -41,6 +42,7 @@ class MarketingCampaign extends Model
         'scheduled_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'attachments' => 'array',
     ];
 
     public function emails()

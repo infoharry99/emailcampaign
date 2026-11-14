@@ -8,6 +8,8 @@ use App\Models\MarketingSuppression;
 use Aws\Ses\SesClient;
 use Aws\Exception\AwsException;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Mime\Email as SymfonyEmail;
+use Symfony\Component\Mime\Address as SymfonyAddress;
 use Exception;
 
 class AwsSesService
@@ -93,40 +95,89 @@ class AwsSesService
         }
 
         try {
-            $params = [
-                'Source' => "{$this->fromName} <{$this->fromAddress}>",
-                'Destination' => [
-                    'ToAddresses' => [$email->recipient_email],
-                ],
-                'Message' => [
-                    'Subject' => [
-                        'Data' => $email->subject,
-                        'Charset' => 'UTF-8',
-                    ],
-                    'Body' => [
-                        'Html' => [
-                            'Data' => $fullHtml,
-                            'Charset' => 'UTF-8',
-                        ],
-                        'Text' => [
-                            'Data' => $fullText,
-                            'Charset' => 'UTF-8',
-                        ],
-                    ],
-                ],
-                'Tags' => [
-                    ['Name' => 'CampaignId', 'Value' => (string) $email->campaign_id],
-                    ['Name' => 'EmailId', 'Value' => (string) $email->id],
-                ],
-            ];
+            $campaign = $email->campaign;
+            $attachments = $campaign ? ($campaign->attachments ?? []) : [];
 
-            // Only attach ConfigurationSetName if configured and not empty
-            if (!empty($this->configurationSet)) {
-                $params['ConfigurationSetName'] = $this->configurationSet;
+            if (!empty($attachments)) {
+                $emailMessage = (new SymfonyEmail())
+                    ->from(new SymfonyAddress($this->fromAddress, $this->fromName))
+                    ->to(new SymfonyAddress($email->recipient_email))
+                    ->subject($email->subject)
+                    ->html($fullHtml)
+                    ->text($fullText);
+
+                if (!empty($unsubUrl)) {
+                    $emailMessage->getHeaders()->addTextHeader('List-Unsubscribe', "<{$unsubUrl}>");
+                    $emailMessage->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
+                }
+
+                foreach ($attachments as $att) {
+                    $relPath = $att['path'] ?? '';
+                    $fullPath = storage_path('app/public/' . $relPath);
+                    if (!file_exists($fullPath)) {
+                        $fullPath = storage_path('app/' . $relPath);
+                    }
+                    if (file_exists($fullPath) && is_file($fullPath)) {
+                        $emailMessage->attachFromPath(
+                            $fullPath,
+                            $att['name'] ?? basename($fullPath),
+                            $att['mime'] ?? null
+                        );
+                    }
+                }
+
+                $params = [
+                    'RawMessage' => [
+                        'Data' => $emailMessage->toString(),
+                    ],
+                    'Tags' => [
+                        ['Name' => 'CampaignId', 'Value' => (string) $email->campaign_id],
+                        ['Name' => 'EmailId', 'Value' => (string) $email->id],
+                    ],
+                ];
+
+                if (!empty($this->configurationSet)) {
+                    $params['ConfigurationSetName'] = $this->configurationSet;
+                }
+
+                $result = $this->sesClient->sendRawEmail($params);
+                $messageId = $result->get('MessageId');
+            } else {
+                $params = [
+                    'Source' => "{$this->fromName} <{$this->fromAddress}>",
+                    'Destination' => [
+                        'ToAddresses' => [$email->recipient_email],
+                    ],
+                    'Message' => [
+                        'Subject' => [
+                            'Data' => $email->subject,
+                            'Charset' => 'UTF-8',
+                        ],
+                        'Body' => [
+                            'Html' => [
+                                'Data' => $fullHtml,
+                                'Charset' => 'UTF-8',
+                            ],
+                            'Text' => [
+                                'Data' => $fullText,
+                                'Charset' => 'UTF-8',
+                            ],
+                        ],
+                    ],
+                    'Tags' => [
+                        ['Name' => 'CampaignId', 'Value' => (string) $email->campaign_id],
+                        ['Name' => 'EmailId', 'Value' => (string) $email->id],
+                    ],
+                ];
+
+                // Only attach ConfigurationSetName if configured and not empty
+                if (!empty($this->configurationSet)) {
+                    $params['ConfigurationSetName'] = $this->configurationSet;
+                }
+
+                $result = $this->sesClient->sendEmail($params);
+                $messageId = $result->get('MessageId');
             }
-
-            $result = $this->sesClient->sendEmail($params);
-            $messageId = $result->get('MessageId');
 
             $email->update([
                 'ses_message_id' => $messageId,

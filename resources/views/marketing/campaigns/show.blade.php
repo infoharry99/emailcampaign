@@ -56,6 +56,11 @@
         </form>
         @endif
 
+        <!-- Edit Campaign Button -->
+        <a href="{{ route('admin.marketing.campaigns.edit', $campaign) }}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+        </a>
+
         <!-- Test Send Modal Trigger -->
         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#testSendModal">
             <i class="fa-solid fa-paper-plane me-1"></i> Send Test Email
@@ -116,6 +121,29 @@
         </div>
     </div>
 </div>
+
+@if(!empty($campaign->attachments))
+<div class="card p-3 mb-4 shadow-sm" style="border-left: 4px solid #4f46e5;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h6 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-paperclip text-primary me-2"></i> Attached Campaign Files ({{ count($campaign->attachments) }})
+            </h6>
+            <p class="text-muted small mb-0">These files are attached to dispatches sent to every recipient via AWS SES.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach($campaign->attachments as $att)
+                <a href="{{ asset('storage/' . ($att['path'] ?? '')) }}" target="_blank" class="badge bg-white text-dark border p-2 text-decoration-none d-inline-flex align-items-center gap-2 shadow-sm" style="border-radius: 6px;">
+                    <i class="fa-solid fa-file text-primary"></i>
+                    <span class="fw-semibold">{{ $att['name'] ?? 'File' }}</span>
+                    <span class="text-muted">({{ number_format(($att['size'] ?? 0) / 1024, 1) }} KB)</span>
+                    <i class="fa-solid fa-download text-muted ms-1"></i>
+                </a>
+            @endforeach
+        </div>
+    </div>
+</div>
+@endif
 
 <!-- Recipients & Status Table -->
 <div class="card">
