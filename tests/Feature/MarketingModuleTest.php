@@ -91,6 +91,14 @@ class MarketingModuleTest extends TestCase
 
     public function test_campaign_creation()
     {
+        MarketingContact::create([
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+            'consent_status' => 'granted',
+            'subscription_status' => 'subscribed',
+            'unsubscribe_token' => 'token-1',
+        ]);
+
         $response = $this->actingAs($this->user)->post('/admin/marketing/campaigns', [
             'name' => 'Test Email Blast',
             'purpose' => 'Promote new AI capabilities',
@@ -104,7 +112,7 @@ class MarketingModuleTest extends TestCase
         ]);
 
         $campaign = MarketingCampaign::where('name', 'Test Email Blast')->first();
-        $this->assertGreaterThan(0, $campaign->total_recipients);
+        $this->assertEquals(1, $campaign->total_recipients);
     }
 
     public function test_campaign_test_send_can_be_retried_without_unique_constraint_violation()
