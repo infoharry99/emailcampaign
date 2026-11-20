@@ -242,9 +242,16 @@ EOT;
 
         $subject = "Collaborating with {$company} on {$industry} efficiency";
 
+        $cleanDesc = trim($desc);
+        if (preg_match('/^(at\s+)?thenexteck/i', $cleanDesc)) {
+            $valueSentence = rtrim($cleanDesc, '.');
+        } else {
+            $valueSentence = "At TheNexteck, we partner with forward-thinking organizations to " . lcfirst(rtrim($cleanDesc, '.'));
+        }
+
         $bodyHtml = "<p>Hi {$name},</p>"
             . "<p>I've been closely following {$company}'s presence in the {$industry} market and wanted to connect specifically regarding {$industrySpecificFocus}.</p>"
-            . "<p>At TheNexteck, we help forward-thinking organizations address this exact challenge through specialized services designed to {$desc}.</p>"
+            . "<p>{$valueSentence}.</p>"
             . "<p>Given your role at {$company}, would you be open to a brief 10-minute introductory conversation next Tuesday to explore whether this could create meaningful value for your team?</p>"
             . "<p>Best regards,<br><strong>Strategic Growth Team</strong><br>TheNexteck</p>";
 
