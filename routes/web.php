@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\MarketingAiCampaignController;
 use App\Http\Controllers\Admin\MarketingAiWriterController;
 use App\Http\Controllers\Admin\MarketingCampaignController;
 use App\Http\Controllers\Admin\MarketingContactController;
@@ -61,6 +62,14 @@ Route::prefix('admin/marketing')->name('admin.marketing.')->middleware('auth')->
     Route::post('/campaigns/{campaign}/duplicate', [MarketingCampaignController::class, 'duplicate'])->name('campaigns.duplicate');
     Route::post('/campaigns/{campaign}/test-send', [MarketingCampaignController::class, 'testSend'])->name('campaigns.test-send');
     Route::resource('campaigns', MarketingCampaignController::class);
+
+    // 3.5 AI Personalized Campaigns
+    Route::post('/ai-campaigns/{campaign}/generate', [MarketingAiCampaignController::class, 'generate'])->name('ai-campaigns.generate');
+    Route::post('/ai-campaigns/{campaign}/approve', [MarketingAiCampaignController::class, 'approve'])->name('ai-campaigns.approve');
+    Route::put('/ai-campaigns/{campaign}/emails/{email}', [MarketingAiCampaignController::class, 'updateEmail'])->name('ai-campaigns.update-email');
+    Route::post('/ai-campaigns/{campaign}/start', [MarketingAiCampaignController::class, 'start'])->name('ai-campaigns.start');
+    Route::post('/ai-campaigns/{campaign}/test-send', [MarketingAiCampaignController::class, 'testSend'])->name('ai-campaigns.test-send');
+    Route::resource('ai-campaigns', MarketingAiCampaignController::class);
 
     // 4. Email Templates
     Route::resource('templates', MarketingTemplateController::class);

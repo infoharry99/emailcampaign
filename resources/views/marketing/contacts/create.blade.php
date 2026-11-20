@@ -46,6 +46,11 @@
                         <label class="form-label fw-semibold">Business Industry / Niche</label>
                         <input type="text" name="business_type" class="form-control" value="{{ old('business_type', 'Technology') }}" placeholder="e.g. SaaS, Logistics, Retail">
                     </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Business Description / Company Overview</label>
+                        <textarea name="business_description" class="form-control" rows="2" placeholder="Describe the company's business activities, services, or products (used by AI for ultra-personalized emails)...">{{ old('business_description') }}</textarea>
+                        <div class="form-text" style="font-size: 0.75rem;">AI uses this description to tailor unique messaging for this specific prospect.</div>
+                    </div>
                     @if(isset($lists) && $lists->isNotEmpty())
                     <div class="col-12">
                         <label class="form-label fw-semibold">Assign to Contact Lists</label>

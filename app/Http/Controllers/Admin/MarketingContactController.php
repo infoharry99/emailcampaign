@@ -69,6 +69,7 @@ class MarketingContactController extends Controller
             'website' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'business_type' => 'nullable|string|max:100',
+            'business_description' => 'nullable|string',
             'consent_status' => 'required|in:granted,revoked,pending',
             'consent_source' => 'required|string|max:255',
             'consent_proof' => 'nullable|string',
@@ -118,6 +119,7 @@ class MarketingContactController extends Controller
             'website' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'business_type' => 'nullable|string|max:100',
+            'business_description' => 'nullable|string',
             'consent_status' => 'required|in:granted,revoked,pending',
             'consent_source' => 'nullable|string|max:255',
             'subscription_status' => 'required|in:subscribed,unsubscribed',
@@ -202,6 +204,7 @@ class MarketingContactController extends Controller
         $websiteIdx = $findCol(['website', 'web', 'url', 'company website']);
         $phoneIdx = $findCol(['phone', 'phone number', 'mobile', 'telephone']);
         $typeIdx = $findCol(['business_type', 'industry', 'industries', 'sector']);
+        $descIdx = $findCol(['business_description', 'description', 'business description', 'about', 'overview', 'summary', 'notes']);
 
         $imported = 0;
         $skipped = 0;
@@ -240,6 +243,7 @@ class MarketingContactController extends Controller
                 $website = $websiteIdx !== false ? (trim($row[$websiteIdx] ?? '') ?: null) : null;
                 $phone = $phoneIdx !== false ? (trim($row[$phoneIdx] ?? '') ?: null) : null;
                 $businessType = ($typeIdx !== false && !empty($row[$typeIdx])) ? trim($row[$typeIdx]) : 'Business';
+                $businessDescription = ($descIdx !== false && !empty($row[$descIdx])) ? trim($row[$descIdx]) : null;
 
                 // Check existing
                 $existing = MarketingContact::where('email', $email)->first();
@@ -255,6 +259,7 @@ class MarketingContactController extends Controller
                     if ($website && empty($existing->website)) $updateData['website'] = $website;
                     if ($phone && empty($existing->phone)) $updateData['phone'] = $phone;
                     if ($businessType !== 'Business' && $existing->business_type === 'Business') $updateData['business_type'] = $businessType;
+                    if ($businessDescription && empty($existing->business_description)) $updateData['business_description'] = $businessDescription;
 
                     if (!empty($updateData)) {
                         $existing->update($updateData);
@@ -275,6 +280,7 @@ class MarketingContactController extends Controller
                     'website' => $website,
                     'phone' => $phone,
                     'business_type' => $businessType,
+                    'business_description' => $businessDescription,
                     'consent_status' => 'granted',
                     'consent_date' => now(),
                     'consent_source' => $request->input('consent_source'),

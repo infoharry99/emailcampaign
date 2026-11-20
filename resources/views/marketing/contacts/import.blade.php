@@ -32,7 +32,7 @@
                     <label class="form-label fw-bold">Select CSV File <span class="text-danger">*</span></label>
                     <input type="file" name="csv_file" class="form-control" accept=".csv" required>
                     <div class="form-text mt-2">
-                        Supported columns: <code>name</code> (or <code>first name</code> + <code>last name</code>), <code>email</code> (or <code>work email</code>), <code>company</code>, <code>website</code>, <code>phone</code>, <code>industries</code> / <code>business_type</code>.
+                        Supported columns: <code>name</code> (or <code>first name</code> + <code>last name</code>), <code>email</code> (or <code>work email</code>), <code>company</code>, <code>website</code>, <code>phone</code>, <code>industries</code> / <code>business_type</code>, <code>business_description</code>.
                     </div>
                 </div>
 

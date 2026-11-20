@@ -443,6 +443,12 @@
                 </a>
             </li>
             <li class="sidebar-item">
+                <a href="{{ route('admin.marketing.ai-campaigns.index') }}" class="sidebar-link {{ request()->routeIs('admin.marketing.ai-campaigns.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-robot text-primary"></i> AI Personalized
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem; padding: 2px 6px;">AI</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
                 <a href="{{ route('admin.marketing.campaigns.create') }}" class="sidebar-link {{ request()->routeIs('admin.marketing.campaigns.create') ? 'active' : '' }}">
                     <i class="fa-solid fa-circle-plus"></i> New Campaign
                 </a>

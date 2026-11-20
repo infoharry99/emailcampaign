@@ -113,6 +113,11 @@
                                 <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>{{ Str::limit($contact->website, 22) }}
                             </a>
                         @endif
+                        @if($contact->business_description)
+                            <div class="small text-muted mt-1" style="font-size: 0.72rem;" title="{{ $contact->business_description }}">
+                                <i class="fa-solid fa-circle-info text-info me-1"></i>{{ Str::limit($contact->business_description, 28) }}
+                            </div>
+                        @endif
                     </td>
                     <td>
                         <span class="pill-badge" style="background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">

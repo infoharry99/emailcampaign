@@ -18,6 +18,7 @@ class MarketingContact extends Model
         'website',
         'phone',
         'business_type',
+        'business_description',
         'verification_status',
         'consent_status',
         'consent_date',

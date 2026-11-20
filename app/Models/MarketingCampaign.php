@@ -11,10 +11,12 @@ class MarketingCampaign extends Model
 
     protected $fillable = [
         'name',
+        'campaign_type',
         'description',
         'purpose',
         'product_service_details',
         'target_criteria',
+        'contact_list_ids',
         'subject',
         'content',
         'attachments',
@@ -43,6 +45,7 @@ class MarketingCampaign extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'attachments' => 'array',
+        'contact_list_ids' => 'array',
     ];
 
     public function emails()
@@ -55,7 +58,12 @@ class MarketingCampaign extends Model
         return $this->hasMany(MarketingEmailEvent::class, 'campaign_id');
     }
 
-    public function calculateTargetRecipientsCount(): int
+    public function isAiPersonalized(): bool
+    {
+        return $this->campaign_type === 'ai_personalized';
+    }
+
+    public function targetContactsQuery()
     {
         $query = MarketingContact::query()
             ->where('subscription_status', 'subscribed')
@@ -64,11 +72,21 @@ class MarketingCampaign extends Model
                 $q->select('email')->from('marketing_suppressions');
             });
 
-        if (!empty($this->target_criteria) && $this->target_criteria !== 'all') {
+        if (!empty($this->contact_list_ids) && is_array($this->contact_list_ids)) {
+            $listIds = array_map('intval', $this->contact_list_ids);
+            $query->whereHas('lists', function ($q) use ($listIds) {
+                $q->whereIn('marketing_contact_lists.id', $listIds);
+            });
+        } elseif (!empty($this->target_criteria) && $this->target_criteria !== 'all') {
             if (str_starts_with($this->target_criteria, 'list:')) {
                 $listId = (int) substr($this->target_criteria, 5);
                 $query->whereHas('lists', function ($q) use ($listId) {
                     $q->where('marketing_contact_lists.id', $listId);
+                });
+            } elseif (str_starts_with($this->target_criteria, 'lists:')) {
+                $listIds = array_map('intval', explode(',', substr($this->target_criteria, 6)));
+                $query->whereHas('lists', function ($q) use ($listIds) {
+                    $q->whereIn('marketing_contact_lists.id', $listIds);
                 });
             } elseif (str_starts_with($this->target_criteria, 'business_type:')) {
                 $type = substr($this->target_criteria, 14);
@@ -76,7 +94,12 @@ class MarketingCampaign extends Model
             }
         }
 
-        return $query->count();
+        return $query;
+    }
+
+    public function calculateTargetRecipientsCount(): int
+    {
+        return $this->targetContactsQuery()->count();
     }
 
     public function recalculateStats(): void

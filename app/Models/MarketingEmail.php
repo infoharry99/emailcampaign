@@ -19,7 +19,9 @@ class MarketingEmail extends Model
         'body_text',
         'generation_mode',
         'is_ai_generated',
+        'is_approved',
         'ai_prompt',
+        'ai_rationale',
         'ai_metadata',
         'ses_message_id',
         'status',
@@ -37,6 +39,7 @@ class MarketingEmail extends Model
 
     protected $casts = [
         'is_ai_generated' => 'boolean',
+        'is_approved' => 'boolean',
         'ai_metadata' => 'array',
         'generated_at' => 'datetime',
         'queued_at' => 'datetime',

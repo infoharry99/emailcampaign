@@ -46,25 +46,7 @@ class ProcessCampaignEmailsJob implements ShouldQueue
         ]);
 
         // Target contacts: strictly verified, subscribed, consented, non-suppressed
-        $contactsQuery = MarketingContact::query()
-            ->where('subscription_status', 'subscribed')
-            ->where('consent_status', 'granted')
-            ->whereNotIn('email', function ($q) {
-                $q->select('email')->from('marketing_suppressions');
-            });
-
-        // Filter by target criteria if specified
-        if (!empty($fresh->target_criteria) && $fresh->target_criteria !== 'all') {
-            if (str_starts_with($fresh->target_criteria, 'list:')) {
-                $listId = (int) substr($fresh->target_criteria, 5);
-                $contactsQuery->whereHas('lists', function ($q) use ($listId) {
-                    $q->where('marketing_contact_lists.id', $listId);
-                });
-            } elseif (str_starts_with($fresh->target_criteria, 'business_type:')) {
-                $type = substr($fresh->target_criteria, 14);
-                $contactsQuery->where('business_type', $type);
-            }
-        }
+        $contactsQuery = $fresh->targetContactsQuery();
 
         $contacts = $contactsQuery->get();
 
@@ -117,7 +99,19 @@ class ProcessCampaignEmailsJob implements ShouldQueue
 
             // Generate Content based on mode
             if (empty($emailRecord->body_html) || $emailRecord->status === 'pending') {
-                if ($fresh->sending_mode === 'template' && !empty($fresh->content)) {
+                if ($fresh->campaign_type === 'ai_personalized') {
+                    $aiDraft = $aiService->generatePersonalizedContactEmail($contact, $fresh);
+                    $emailRecord->update([
+                        'subject' => $aiDraft['subject'],
+                        'body_html' => $aiDraft['body_html'],
+                        'body_text' => $aiDraft['body_text'],
+                        'ai_rationale' => $aiDraft['ai_rationale'] ?? null,
+                        'is_ai_generated' => true,
+                        'ai_metadata' => $aiDraft['metadata'] ?? null,
+                        'status' => 'generated',
+                        'generated_at' => now(),
+                    ]);
+                } elseif ($fresh->sending_mode === 'template' && !empty($fresh->content)) {
                     // Template mode
                     $rendered = $this->renderTemplate($fresh->content, $fresh->subject, $contact);
                     $emailRecord->update([

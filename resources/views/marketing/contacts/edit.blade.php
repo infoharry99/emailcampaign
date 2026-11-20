@@ -51,6 +51,10 @@
                         <label class="form-label fw-semibold" style="font-size: 0.8rem;">Industry / Business Type</label>
                         <input type="text" name="business_type" class="form-control form-control-sm" value="{{ old('business_type', $contact->business_type) }}" style="border-radius: 8px; border-color: #e2e8f0;">
                     </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" style="font-size: 0.8rem;">Business Description / Company Overview</label>
+                        <textarea name="business_description" class="form-control form-control-sm" rows="2" style="border-radius: 8px; border-color: #e2e8f0;" placeholder="Detailed business description used by AI to generate customized email outreach...">{{ old('business_description', $contact->business_description) }}</textarea>
+                    </div>
                     @if(isset($lists) && $lists->isNotEmpty())
                     <div class="col-12">
                         <label class="form-label fw-semibold" style="font-size: 0.8rem;">Assign to Contact Lists</label>
