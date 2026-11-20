@@ -45,6 +45,12 @@ class AiPersonalizedCampaignTest extends TestCase
         $this->assertEquals('draft', $campaign->status);
 
         $response->assertRedirect(route('admin.marketing.ai-campaigns.show', $campaign));
+
+        // Verify GET show page renders cleanly without UrlGenerationException
+        $showResponse = $this->actingAs($this->user)->get(route('admin.marketing.ai-campaigns.show', $campaign));
+        $showResponse->assertStatus(200);
+        $showResponse->assertSee('Maritime Tech Outreach');
+        $showResponse->assertSee('Transport Partners');
     }
 
     public function test_ai_email_generation_creates_unique_personalized_emails_for_contacts()

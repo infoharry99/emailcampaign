@@ -69,7 +69,9 @@ Route::prefix('admin/marketing')->name('admin.marketing.')->middleware('auth')->
     Route::put('/ai-campaigns/{campaign}/emails/{email}', [MarketingAiCampaignController::class, 'updateEmail'])->name('ai-campaigns.update-email');
     Route::post('/ai-campaigns/{campaign}/start', [MarketingAiCampaignController::class, 'start'])->name('ai-campaigns.start');
     Route::post('/ai-campaigns/{campaign}/test-send', [MarketingAiCampaignController::class, 'testSend'])->name('ai-campaigns.test-send');
-    Route::resource('ai-campaigns', MarketingAiCampaignController::class);
+    Route::resource('ai-campaigns', MarketingAiCampaignController::class)->parameters([
+        'ai-campaigns' => 'campaign'
+    ]);
 
     // 4. Email Templates
     Route::resource('templates', MarketingTemplateController::class);
