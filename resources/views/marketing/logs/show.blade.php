@@ -21,16 +21,40 @@
                 <div class="col-md-6">
                     <span class="text-muted small">Recipient</span>
                     <div class="fw-bold">{{ $email->recipient_name }} &lt;{{ $email->recipient_email }}&gt;</div>
+                    @if($email->contact?->company)
+                        <div class="small text-muted mt-1">
+                            <strong>Company:</strong> {{ $email->contact->company }}
+                            @if($email->contact->business_type)
+                                <span class="badge bg-light text-dark border ms-1">{{ $email->contact->business_type }}</span>
+                            @endif
+                        </div>
+                    @endif
                 </div>
                 <div class="col-md-6">
                     <span class="text-muted small">Campaign</span>
-                    <div>{{ $email->campaign?->name ?: 'Direct/Test' }}</div>
+                    <div>
+                        <span class="fw-semibold">{{ $email->campaign?->name ?: 'Direct / Test' }}</span>
+                        @if($email->is_ai_generated)
+                            <span class="badge bg-purple text-white ms-1" style="background-color: #7c3aed; font-size: 0.72rem;">
+                                <i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Personalized
+                            </span>
+                        @endif
+                    </div>
                 </div>
                 <div class="col-md-12">
                     <span class="text-muted small">Subject</span>
-                    <div class="fw-semibold">{{ $email->subject }}</div>
+                    <div class="fw-bold fs-6 text-dark">{{ $email->subject }}</div>
                 </div>
             </div>
+
+            @if($email->ai_rationale)
+            <div class="p-3 mb-3 rounded-3" style="background-color: #faf5ff; border: 1px solid #e9d5ff;">
+                <div class="fw-bold small text-purple" style="color: #6b21a8;">
+                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Personalization Context:
+                </div>
+                <div class="small text-dark mt-1">{{ $email->ai_rationale }}</div>
+            </div>
+            @endif
 
             @if($email->error_message)
             <div class="alert alert-danger mb-3">

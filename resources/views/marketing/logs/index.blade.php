@@ -52,6 +52,7 @@
                     <th>SES Message ID</th>
                     <th>Retries</th>
                     <th>Timestamp</th>
+                    <th class="text-end">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -61,12 +62,27 @@
                         <a href="{{ route('admin.marketing.logs.show', $email) }}" class="fw-bold text-decoration-none text-dark">
                             {{ $email->recipient_email }}
                         </a>
-                        <div class="text-muted small">{{ $email->recipient_name }}</div>
+                        <div class="text-muted small">
+                            {{ $email->recipient_name }}
+                            @if($email->contact?->company)
+                                <span class="badge bg-light text-muted border ms-1">{{ $email->contact->company }}</span>
+                            @endif
+                        </div>
                     </td>
                     <td>
                         <span class="badge bg-light text-dark border">{{ $email->campaign->name ?? 'Direct' }}</span>
+                        @if($email->is_ai_generated)
+                            <div><span class="badge bg-purple-subtle text-purple border" style="background-color: #f3e8ff; color: #6b21a8; font-size: 0.7rem;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI</span></div>
+                        @endif
                     </td>
-                    <td>{{ Str::limit($email->subject, 35) }}</td>
+                    <td>
+                        <div class="fw-semibold text-dark" title="{{ $email->subject }}">{{ Str::limit($email->subject, 40) }}</div>
+                        @if($email->ai_rationale)
+                            <div class="text-muted small fst-italic" style="font-size: 0.72rem; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $email->ai_rationale }}">
+                                {{ $email->ai_rationale }}
+                            </div>
+                        @endif
+                    </td>
                     <td>
                         @php
                             $badge = match($email->status) {
@@ -89,10 +105,15 @@
                     <td><code class="small text-muted">{{ Str::limit($email->ses_message_id, 24) ?: '—' }}</code></td>
                     <td><span class="badge bg-light text-dark border">{{ $email->retry_count }}</span></td>
                     <td class="text-muted small">{{ $email->created_at->format('M d, H:i') }}</td>
+                    <td class="text-end">
+                        <a href="{{ route('admin.marketing.logs.show', $email) }}" class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size: 0.78rem;" title="View exact email sent to this contact">
+                            <i class="fa-regular fa-eye me-1"></i> View Email
+                        </a>
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="text-center py-4 text-muted">No email logs matching criteria.</td>
+                    <td colspan="8" class="text-center py-4 text-muted">No email logs matching criteria.</td>
                 </tr>
                 @endforelse
             </tbody>
